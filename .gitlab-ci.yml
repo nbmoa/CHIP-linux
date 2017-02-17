@@ -1,0 +1,27 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+stages:
+  - build
+
+variables:
+  BUILD_CONTAINER_IMAGE: $CI_REGISTRY/baumeister
+
+before_script:
+  - echo "CI_REGISTRY=$CI_REGISTRY"
+  - echo "CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE"
+  - echo "CI_PROJECT_URL=$CI_PROJECT_URL"
+  - echo "BUILD_CONTAINER_IMAGE=$BUILD_CONTAINER_IMAGE"
+
+build:
+  stage: build
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - docker pull $BUILD_CONTAINER_IMAGE
+    - docker run --rm -v $PWD:/build -w /build $BUILD_CONTAINER_IMAGE make multi_v7_defconfig
+    - docker run --rm -v $PWD:/build -w /build $BUILD_CONTAINER_IMAGE make zImage
+    - docker run --rm -v $PWD:/build -w /build $BUILD_CONTAINER_IMAGE make dtbs
+    - docker run --rm -v $PWD:/build -w /build $BUILD_CONTAINER_IMAGE make modules
+    #TODO: - docker run --rm -v $PWD:/build -w /build $BUILD_CONTAINER_IMAGE make headers_install INSTALL_HDR_PATH=...
